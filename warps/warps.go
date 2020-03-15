@@ -2,8 +2,11 @@ package warps
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
+
+	. "github.com/logrusorgru/aurora"
 )
 
 type Entry struct {
@@ -32,6 +35,7 @@ func createNewDatabaseFile(path string) error {
 	}
 
 	err = ioutil.WriteFile(path, serialized, 0755)
+	fmt.Printf("Wrote new warps database file at %s\n", Yellow(path))
 	return err
 }
 

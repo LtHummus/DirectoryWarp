@@ -5,13 +5,32 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+
+	"github.com/mitchellh/go-homedir"
 )
 
-const DATABASE_PATH = "test.json"
+const DefaultDatabaseName = ".warps.json"
+const DatabaseEnvironmentVariableName = "WARPS_DATABASE_FILE"
+
+func getWarpsPath() string {
+	customPath, useCustomPath := os.LookupEnv(DatabaseEnvironmentVariableName)
+	if useCustomPath {
+		return customPath
+	}
+
+	homeDir, err := homedir.Dir()
+	if err != nil {
+		fmt.Printf("Error loading directory: %v\n", err)
+		os.Exit(1)
+	}
+	return filepath.Join(homeDir, DefaultDatabaseName)
+}
 
 func main() {
 	//setup command line parsing
-	database, err := warps.Load(DATABASE_PATH)
+	databasePath := getWarpsPath()
+	database, err := warps.Load(databasePath)
 	if err != nil {
 		fmt.Printf("Error loading database: %v\n", err)
 	}
@@ -73,7 +92,7 @@ func main() {
 			os.Exit(1)
 		}
 		deleteEntry(database, params[0])
-		err = database.Write(DATABASE_PATH)
+		err = database.Write(databasePath)
 		if err != nil {
 			fmt.Printf("Error writing database back out: %v\n", err)
 			os.Exit(1)
@@ -91,11 +110,15 @@ func main() {
 			os.Exit(1)
 		}
 		setEntry(database, params[0], params[1])
-		err = database.Write(DATABASE_PATH)
+		err = database.Write(databasePath)
 		if err != nil {
 			fmt.Printf("Error writing database back out: %v\n", err)
 			os.Exit(1)
 		}
+
+	default:
+		fmt.Printf("Command not recognized\n")
+		os.Exit(1)
 	}
 
 }
