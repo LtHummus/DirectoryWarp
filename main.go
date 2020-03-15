@@ -64,7 +64,7 @@ func main() {
 			fmt.Printf("No name specified\n")
 			os.Exit(1)
 		}
-		path, exists := getEntry(database, params[0])
+		path, exists := database.GetEntry(params[0])
 		if !exists {
 			os.Exit(1)
 		} else {
@@ -78,7 +78,7 @@ func main() {
 			fmt.Printf("Error parsing commands: %v\n", err)
 			os.Exit(1)
 		}
-		listEntries(database)
+		database.ListEntries()
 
 	case "delete":
 		err := deleteCmd.Parse(os.Args[2:])
@@ -91,7 +91,7 @@ func main() {
 			fmt.Printf("Name not specified\n")
 			os.Exit(1)
 		}
-		deleteEntry(database, params[0])
+		database.DeleteEntry(params[0])
 		err = database.Write(databasePath)
 		if err != nil {
 			fmt.Printf("Error writing database back out: %v\n", err)
@@ -109,7 +109,7 @@ func main() {
 			fmt.Printf("Name and path not specified\n")
 			os.Exit(1)
 		}
-		setEntry(database, params[0], params[1])
+		database.SetEntry(params[0], params[1])
 		err = database.Write(databasePath)
 		if err != nil {
 			fmt.Printf("Error writing database back out: %v\n", err)

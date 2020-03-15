@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	. "github.com/logrusorgru/aurora"
 )
@@ -27,8 +28,12 @@ func checkExist(path string) bool {
 	return !stats.IsDir()
 }
 
+func emptyWarps() *Warps {
+	return &Warps{make(map[string]Entry)}
+}
+
 func createNewDatabaseFile(path string) error {
-	database := Warps{make(map[string]Entry)}
+	database := emptyWarps()
 	serialized, err := json.Marshal(database)
 	if err != nil {
 		return err
@@ -64,19 +69,6 @@ func Load(path string) (*Warps, error) {
 	return &database, nil
 }
 
-func (warps *Warps) Add(name string, path string) bool {
-	var overwrite bool
-	_, exists := warps.Warps[name]
-	if exists {
-		overwrite = true
-	}
-	warps.Warps[name] = Entry{
-		Name: name,
-		Path: path,
-	}
-
-	return overwrite
-}
 
 func (warps *Warps) Write(path string) error {
 	serialized, err := json.Marshal(warps)
@@ -86,4 +78,55 @@ func (warps *Warps) Write(path string) error {
 
 	err = ioutil.WriteFile(path, serialized, 0755)
 	return err
+}
+
+func (warps *Warps) ListEntries() {
+	for name, entry := range warps.Warps {
+		fmt.Printf("%s -> %s\n", Cyan(name), Green(entry.Path))
+	}
+}
+
+func (warps *Warps) SetEntry(name string, path string) {
+	cleanedPath, err := filepath.Abs(path)
+	if err != nil {
+		msg := fmt.Sprintf("Can not clean path: %v", err)
+		fmt.Printf("%s\n", Red(msg))
+	}
+	var overwritten bool
+	_, exists := warps.Warps[name]
+	if exists {
+		overwritten = true
+	}
+
+	warps.Warps[name] = Entry{
+		Name: name,
+		Path: cleanedPath,
+	}
+
+	if overwritten {
+		fmt.Printf("%s\n", Yellow("Overwriting old entry"))
+	}
+
+	fmt.Printf("Set %s to %s\n", Cyan(name), Green(cleanedPath))
+}
+
+func (warps *Warps) DeleteEntry(name string) bool {
+	_, exists := warps.Warps[name]
+	if !exists {
+		fmt.Printf("Entry %s does not exist\n", Cyan(name))
+		return false
+	}
+
+	delete(warps.Warps, name)
+	fmt.Printf("Entry %s deleted\n", Cyan(name))
+	return true
+}
+
+func (warps *Warps) GetEntry(name string) (*string, bool) {
+	path, exists := warps.Warps[name]
+	if !exists {
+		fmt.Printf("%s does not exist\n", Cyan(name))
+		return nil, false
+	}
+	return &path.Path, true
 }
