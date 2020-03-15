@@ -29,3 +29,24 @@ func setEntry(warps *warps.Warps, name string, path string) {
 
 	fmt.Printf("Set %s to %s\n", Cyan(name), Green(cleanedPath))
 }
+
+func deleteEntry(warps *warps.Warps, name string) bool {
+	_, exists := warps.Warps[name]
+	if !exists {
+		fmt.Printf("Entry %s does not exist\n", Cyan(name))
+		return false
+	}
+
+	delete(warps.Warps, name)
+	fmt.Printf("Entry %s deleted\n", Cyan(name))
+	return true
+}
+
+func getEntry(warps *warps.Warps, name string) (*string, bool) {
+	path, exists := warps.Warps[name]
+	if !exists {
+		fmt.Printf("%s does not exist\n", Cyan(name))
+		return nil, false
+	}
+	return &path.Path, true
+}
