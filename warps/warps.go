@@ -25,7 +25,7 @@ func checkExist(path string) bool {
 }
 
 func createNewDatabaseFile(path string) error {
-	database := Warps{}
+	database := Warps{make(map[string]Entry)}
 	serialized, err := json.Marshal(database)
 	if err != nil {
 		return err
@@ -58,4 +58,28 @@ func Load(path string) (*Warps, error) {
 	}
 
 	return &database, nil
+}
+
+func (warps *Warps) Add(name string, path string) bool {
+	var overwrite bool
+	_, exists := warps.Warps[name]
+	if exists {
+		overwrite = true
+	}
+	warps.Warps[name] = Entry{
+		Name: name,
+		Path: path,
+	}
+
+	return overwrite
+}
+
+func (warps *Warps) Write(path string) error {
+	serialized, err := json.Marshal(warps)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, serialized, 0755)
+	return err
 }

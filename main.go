@@ -7,14 +7,14 @@ import (
 	"os"
 )
 
+const DATABASE_PATH = "test.json"
+
 func main() {
 	//setup command line parsing
-	database, err := warps.Load("test.json")
+	database, err := warps.Load(DATABASE_PATH)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		fmt.Printf("Error loading database: %v\n", err)
 	}
-	fmt.Printf("%+v\n", database)
-	os.Exit(0)
 
 	//list
 	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
@@ -34,8 +34,7 @@ func main() {
 			fmt.Printf("Error parsing commands: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("list\n")
-		fmt.Printf("%v\n", listCmd.Args())
+		listEntries(database)
 
 	case "set":
 		err := setCmd.Parse(os.Args[2:])
@@ -43,7 +42,18 @@ func main() {
 			fmt.Printf("Error parsing commands: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("set\n")
+		params := setCmd.Args()
+		if len(params) < 2 {
+			fmt.Printf("Name and path not specified")
+			os.Exit(1)
+		}
+		setEntry(database, params[0], params[1])
+		err = database.Write(DATABASE_PATH)
+		if err != nil {
+			fmt.Printf("Error writing database back out: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 }
+
