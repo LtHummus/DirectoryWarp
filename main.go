@@ -1,17 +1,23 @@
 package main
 
 import (
-	"DirectoryWarp/warps"
-	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
+	"DirectoryWarp/warps"
+
 	"github.com/mitchellh/go-homedir"
+	"github.com/urfave/cli/v2"
 )
 
 const DefaultDatabaseName = ".warps.json"
 const DatabaseEnvironmentVariableName = "WARPS_DATABASE_FILE"
+
+func loadDatabase(databasePath string) (*warps.Warps, error) {
+	return warps.Load(databasePath)
+}
 
 func getWarpsPath() string {
 	customPath, useCustomPath := os.LookupEnv(DatabaseEnvironmentVariableName)
@@ -27,99 +33,106 @@ func getWarpsPath() string {
 	return filepath.Join(homeDir, DefaultDatabaseName)
 }
 
-func main() {
-	//setup command line parsing
+func setWarp(c *cli.Context) error {
+	if c.Args().Len() < 2 {
+		return cli.Exit("setting a warp requires two arguments", 1)
+	}
+
 	databasePath := getWarpsPath()
-	database, err := warps.Load(databasePath)
+	database, err := loadDatabase(databasePath)
 	if err != nil {
-		fmt.Printf("Error loading database: %v\n", err)
+		return err
 	}
 
-	//go
-	goCmd := flag.NewFlagSet("go", flag.ExitOnError)
-
-	//list
-	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
-
-	//set
-	setCmd := flag.NewFlagSet("set", flag.ExitOnError)
-
-	//delete
-	deleteCmd := flag.NewFlagSet("delete", flag.ExitOnError)
-
-	if len(os.Args) < 2 {
-		fmt.Println("Error. No command given")
-		os.Exit(1)
-	}
-
-	switch os.Args[1]{
-	case "go":
-		err := goCmd.Parse(os.Args[2:])
-		if err != nil {
-			fmt.Printf("Error parsing commands: %v\n", err)
-			os.Exit(1)
-		}
-		params := goCmd.Args()
-		if len(params) < 1 {
-			fmt.Printf("No name specified\n")
-			os.Exit(1)
-		}
-		path, exists := database.GetEntry(params[0])
-		if !exists {
-			os.Exit(1)
-		} else {
-			fmt.Printf("%s\n", *path)
-			os.Exit(2)
-		}
-
-	case "list":
-		err := listCmd.Parse(os.Args[2:])
-		if err != nil {
-			fmt.Printf("Error parsing commands: %v\n", err)
-			os.Exit(1)
-		}
-		database.ListEntries()
-
-	case "delete":
-		err := deleteCmd.Parse(os.Args[2:])
-		if err != nil {
-			fmt.Printf("Error parsing commands: %v\n", err)
-			os.Exit(1)
-		}
-		params := deleteCmd.Args()
-		if len(params) < 1 {
-			fmt.Printf("Name not specified\n")
-			os.Exit(1)
-		}
-		database.DeleteEntry(params[0])
-		err = database.Write(databasePath)
-		if err != nil {
-			fmt.Printf("Error writing database back out: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "set":
-		err := setCmd.Parse(os.Args[2:])
-		if err != nil {
-			fmt.Printf("Error parsing commands: %v\n", err)
-			os.Exit(1)
-		}
-		params := setCmd.Args()
-		if len(params) < 2 {
-			fmt.Printf("Name and path not specified\n")
-			os.Exit(1)
-		}
-		database.SetEntry(params[0], params[1])
-		err = database.Write(databasePath)
-		if err != nil {
-			fmt.Printf("Error writing database back out: %v\n", err)
-			os.Exit(1)
-		}
-
-	default:
-		fmt.Printf("Command not recognized\n")
-		os.Exit(1)
-	}
-
+	database.SetEntry(c.Args().Get(0), c.Args().Get(1))
+	err = database.Write(databasePath)
+	return err
 }
 
+func listWarps(c *cli.Context) error {
+	databasePath := getWarpsPath()
+	database, err := loadDatabase(databasePath)
+	if err != nil {
+		return err
+	}
+
+	database.ListEntries()
+	return nil
+}
+
+func jumpWarp(c *cli.Context) error {
+	if c.Args().Len() < 1 {
+		return cli.Exit("need a warp to go to", 1)
+	}
+
+	databasePath := getWarpsPath()
+	database, err := loadDatabase(databasePath)
+	if err != nil {
+		return err
+	}
+
+	path, exists := database.GetEntry(c.Args().First())
+	if !exists {
+		return cli.Exit("", 1)
+	} else {
+		//have to do the print here since the API will send to stderr
+		fmt.Printf("%s\n", *path)
+		return cli.Exit("", 2)
+	}
+}
+
+func deleteWarp(c *cli.Context) error {
+	if c.Args().Len() < 1 {
+		return cli.Exit("need a warp to delete", 1)
+	}
+
+	databasePath := getWarpsPath()
+	database, err := loadDatabase(databasePath)
+	if err != nil {
+		return err
+	}
+
+	database.DeleteEntry(c.Args().First())
+	return database.Write(databasePath)
+}
+
+func main() {
+	app := &cli.App{
+		Name:        "wd",
+		Version:     "0.0.1",
+		Description: "it's like `cd` but with bookmarks",
+		Usage:       "a way to warp directories",
+		UsageText:   "wd command [arguments...]",
+		Commands: []*cli.Command{
+			{
+				Name:      "set",
+				Aliases:   []string{"add", "create", "s", "a"},
+				ArgsUsage: "name path",
+				Usage:     "add a warp point",
+				Action:    setWarp,
+			},
+			{
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "list all warp points",
+				Action:  listWarps,
+			},
+			{
+				Name:    "go",
+				Aliases: []string{"g", "j", "jump", "warp", "w"},
+				Usage:   "jump to warp point",
+				Action:  jumpWarp,
+			},
+			{
+				Name:   "delete",
+				Usage:  "delete warp point",
+				Action: deleteWarp,
+			},
+		},
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
