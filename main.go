@@ -102,6 +102,7 @@ func main() {
 		Version:     "0.0.1",
 		Description: "it's like `cd` but with bookmarks",
 		Usage:       "a way to warp directories",
+		UsageText:   "wd command [arguments...]",
 		Commands: []*cli.Command{
 			{
 				Name:      "set",
