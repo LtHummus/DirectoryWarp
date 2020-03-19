@@ -98,7 +98,7 @@ func deleteWarp(c *cli.Context) error {
 
 func main() {
 	app := &cli.App{
-		Name:        "WarpDirectory",
+		Name:        "wd",
 		Version:     "0.0.1",
 		Description: "it's like `cd` but with bookmarks",
 		Usage:       "a way to warp directories",
