@@ -54,3 +54,18 @@ func TestDeleteNotExist(t *testing.T) {
 	deleted := db.DeleteEntry("bad")
 	assert.False(t, deleted)
 }
+
+func TestSearch(t *testing.T) {
+	db := emptyWarps()
+
+	db.SetEntry("abc", "")
+	db.SetEntry("abd", "")
+	db.SetEntry("ape", "")
+	db.SetEntry("bce", "")
+
+	assert.Len(t, db.FindEntries("a"), 3)
+	assert.Len(t, db.FindEntries("ab"), 2)
+	assert.Len(t, db.FindEntries("b"), 1)
+	assert.Len(t, db.FindEntries("z"), 0)
+	assert.Len(t, db.FindEntries(""), 4)
+}

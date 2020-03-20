@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/logrusorgru/aurora"
 )
@@ -84,6 +85,19 @@ func (warps *Warps) ListEntries() {
 	for name, entry := range warps.Warps {
 		fmt.Printf("%s -> %s\n", Cyan(name), Green(entry.Path))
 	}
+}
+
+func (warps *Warps) FindEntries(prefix string) []string {
+	lowerPrefix := strings.ToLower(prefix)
+	res := make([]string, 0)
+
+	for k, _ := range warps.Warps {
+		if strings.HasPrefix(strings.ToLower(k), lowerPrefix) {
+			res = append(res, k)
+		}
+	}
+
+	return res
 }
 
 func (warps *Warps) SetEntry(name string, path string) {

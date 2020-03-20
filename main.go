@@ -60,6 +60,26 @@ func listWarps(c *cli.Context) error {
 	return nil
 }
 
+func completeWarps(c *cli.Context) {
+	databasePath := getWarpsPath()
+	database, err := loadDatabase(databasePath)
+	if err != nil {
+		fmt.Printf("Error loading database: %v\n", err)
+		return
+	}
+
+	var entries []string
+	if c.NArg() == 0 {
+		entries = database.FindEntries("")
+	} else {
+		entries = database.FindEntries(c.Args().First())
+	}
+
+	for _, t := range entries {
+		fmt.Println(t)
+	}
+}
+
 func jumpWarp(c *cli.Context) error {
 	if c.Args().Len() < 1 {
 		return cli.Exit("need a warp to go to", 1)
@@ -98,11 +118,12 @@ func deleteWarp(c *cli.Context) error {
 
 func main() {
 	app := &cli.App{
-		Name:        "wd",
-		Version:     "0.0.1",
-		Description: "it's like `cd` but with bookmarks",
-		Usage:       "a way to warp directories",
-		UsageText:   "wd command [arguments...]",
+		Name:                 "wd",
+		Version:              "0.0.1",
+		Description:          "it's like `cd` but with bookmarks",
+		Usage:                "a way to warp directories",
+		UsageText:            "wd command [arguments...]",
+		EnableBashCompletion: true,
 		Commands: []*cli.Command{
 			{
 				Name:      "set",
@@ -118,15 +139,17 @@ func main() {
 				Action:  listWarps,
 			},
 			{
-				Name:    "go",
-				Aliases: []string{"g", "j", "jump", "warp", "w"},
-				Usage:   "jump to warp point",
-				Action:  jumpWarp,
+				Name:         "go",
+				Aliases:      []string{"g", "j", "jump", "warp", "w"},
+				Usage:        "jump to warp point",
+				Action:       jumpWarp,
+				BashComplete: completeWarps,
 			},
 			{
-				Name:   "delete",
-				Usage:  "delete warp point",
-				Action: deleteWarp,
+				Name:         "delete",
+				Usage:        "delete warp point",
+				Action:       deleteWarp,
+				BashComplete: completeWarps,
 			},
 		},
 	}
